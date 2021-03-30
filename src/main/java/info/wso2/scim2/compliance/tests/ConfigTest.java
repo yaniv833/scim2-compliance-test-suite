@@ -54,6 +54,7 @@ public class ConfigTest {
      */
     public ConfigTest(ComplianceTestMetaDataHolder complianceTestMetaDataHolder) {
         this.complianceTestMetaDataHolder = complianceTestMetaDataHolder;
+        scimServiceProviderConfig = new SCIMServiceProviderConfig();
     }
 
     /**

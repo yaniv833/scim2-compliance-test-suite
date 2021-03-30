@@ -41,4 +41,16 @@ public class Statistics {
     }
 
     public void incFailed() { this.failed++; }
+
+    public int getFailed() {
+        return failed;
+    }
+
+    public int getSkipped() {
+        return skipped;
+    }
+
+    public int getSuccess() {
+        return success;
+    }
 }

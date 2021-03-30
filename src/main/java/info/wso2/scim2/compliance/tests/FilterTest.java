@@ -48,6 +48,8 @@ import org.wso2.charon3.core.schema.SCIMResourceTypeSchema;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -142,7 +144,8 @@ public class FilterTest {
     private TestResult FilterUsers()
             throws ComplianceException, GeneralComplianceException {
         String value = (new ArrayList<>(userIDs.values())).get(0);
-        HttpGet method = new HttpGet(usersURL +"?filter=userName+eq+" + value);
+        String filter = URLEncoder.encode("userName eq \"" + value + "\"", StandardCharsets.UTF_8);
+        HttpGet method = new HttpGet(usersURL +"?filter="+filter);
 
         HttpClient client = HTTPClient.getHttpClient();
 
@@ -330,7 +333,7 @@ public class FilterTest {
         subTests.add(ComplianceConstants.TestConstants.FILTER_CONTENT_TEST);
         String value = (new ArrayList<>(userIDs.values())).get(0);
         for (User user : userList) {
-            if (!value.equals(user.getUserName())){
+            if (!value.equalsIgnoreCase(user.getUserName())){
                 //clean up task
                 for (String id : userIDs.keySet()) {
                     CleanUpUser(id);
@@ -485,7 +488,9 @@ public class FilterTest {
     private TestResult FilterGroups()
             throws ComplianceException, GeneralComplianceException {
         String value = (new ArrayList<>(groupIDs.values())).get(0);
-        HttpGet method = new HttpGet(groupURL +"?filter=displayName+eq+" + value);
+        String filter = URLEncoder.encode("displayName eq \"" + value + "\"", StandardCharsets.UTF_8);
+
+        HttpGet method = new HttpGet(groupURL +"?filter="+filter);
 
         HttpClient client = HTTPClient.getHttpClient();
 

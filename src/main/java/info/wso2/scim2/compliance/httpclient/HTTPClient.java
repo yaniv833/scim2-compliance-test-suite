@@ -17,9 +17,11 @@ package info.wso2.scim2.compliance.httpclient;
 
 import info.wso2.scim2.compliance.exception.ComplianceException;
 import info.wso2.scim2.compliance.protocol.ComplianceTestMetaDataHolder;
+
 import org.apache.commons.codec.binary.Base64;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -29,6 +31,7 @@ import org.apache.http.ssl.TrustStrategy;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLSession;
+
 import java.nio.charset.Charset;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
@@ -41,62 +44,64 @@ import java.security.cert.X509Certificate;
  */
 public class HTTPClient {
 
-    private static CloseableHttpClient httpClient = null;
+  private static CloseableHttpClient httpClient = null;
 
-    public static HttpClient getHttpClient() throws ComplianceException {
-        if(httpClient == null) {
-            TrustStrategy trustAllStrategy = new TrustStrategy() {
-                public boolean isTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-                    return true;
-                }
-            };
-            SSLContextBuilder builder = new SSLContextBuilder();
-            try {
-                builder.loadTrustMaterial(trustAllStrategy);
-            } catch (NoSuchAlgorithmException | KeyStoreException e) {
-                throw new ComplianceException("Error in setting up the http client");
-            }
-
-            SSLConnectionSocketFactory sslsf = null;
-            try {
-                HostnameVerifier allHostsValid = new HostnameVerifier() {
-                    public boolean verify(String hostname, SSLSession session) {
-                        return true;
-                    }
-                };
-                sslsf = new SSLConnectionSocketFactory(builder.build(), allHostsValid);
-            } catch (NoSuchAlgorithmException | KeyManagementException e) {
-                throw new ComplianceException("Error in setting up the http client");
-            }
-            httpClient = HttpClients.custom().setSSLSocketFactory(sslsf).build();
-            return httpClient;
+  public static HttpClient getHttpClient() throws ComplianceException {
+    if (httpClient == null) {
+      TrustStrategy trustAllStrategy = new TrustStrategy() {
+        public boolean isTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+          return true;
         }
-        return httpClient;
+      };
+      SSLContextBuilder builder = new SSLContextBuilder();
+      try {
+        builder.loadTrustMaterial(trustAllStrategy);
+      } catch (NoSuchAlgorithmException | KeyStoreException e) {
+        throw new ComplianceException("Error in setting up the http client");
+      }
+
+      SSLConnectionSocketFactory sslsf = null;
+      try {
+        HostnameVerifier allHostsValid = new HostnameVerifier() {
+          public boolean verify(String hostname, SSLSession session) {
+            return true;
+          }
+        };
+        sslsf = new SSLConnectionSocketFactory(builder.build(), allHostsValid);
+      } catch (NoSuchAlgorithmException | KeyManagementException e) {
+        throw new ComplianceException("Error in setting up the http client");
+      }
+      httpClient = HttpClients.custom().setSSLSocketFactory(sslsf).build();
+      return httpClient;
     }
+    return httpClient;
+  }
 
-    public static HttpRequestBase setAuthorizationHeader (ComplianceTestMetaDataHolder complianceTestMetaDataHolder,
-                                                          HttpRequestBase method) {
+  public static HttpRequestBase setAuthorizationHeader(ComplianceTestMetaDataHolder complianceTestMetaDataHolder,
+                                                       HttpRequestBase method) {
+    String auth = complianceTestMetaDataHolder.getAuthorization_header();
+//    System.out.println("Auth header is: " + auth);
+    method.setHeader(HttpHeaders.AUTHORIZATION, "Bearer " + auth);
+//        String auth = complianceTestMetaDataHolder.getUsername() + ":" + complianceTestMetaDataHolder.getPassword();
+//        if (!auth.equals(":")) {
+//            byte[] encodedAuth = Base64.encodeBase64(auth.getBytes(Charset.forName("US-ASCII")));
+//            String authHeader = "Basic " + new String(encodedAuth);
+//            method.setHeader(HttpHeaders.AUTHORIZATION, authHeader);
+//        }
+    return method;
+  }
 
-        String auth = complianceTestMetaDataHolder.getUsername() + ":" + complianceTestMetaDataHolder.getPassword();
-        if (!auth.equals(":")) {
-            byte[] encodedAuth = Base64.encodeBase64(auth.getBytes(Charset.forName("US-ASCII")));
-            String authHeader = "Basic " + new String(encodedAuth);
-            method.setHeader(HttpHeaders.AUTHORIZATION, authHeader);
-        }
-        return method;
+  public static HttpRequestBase setAuthorizationHeader(String userName, String password,
+                                                       HttpRequestBase method) {
+
+    String auth = userName + ":" + password;
+    if (!auth.equals(":")) {
+      byte[] encodedAuth = Base64.encodeBase64(auth.getBytes(Charset.forName("US-ASCII")));
+      String authHeader = "Basic " + new String(encodedAuth);
+      method.setHeader(HttpHeaders.AUTHORIZATION, authHeader);
     }
-
-    public static HttpRequestBase setAuthorizationHeader (String userName, String password,
-                                                          HttpRequestBase method) {
-
-        String auth = userName + ":" + password;
-        if (!auth.equals(":")) {
-            byte[] encodedAuth = Base64.encodeBase64(auth.getBytes(Charset.forName("US-ASCII")));
-            String authHeader = "Basic " + new String(encodedAuth);
-            method.setHeader(HttpHeaders.AUTHORIZATION, authHeader);
-        }
-        return method;
-    }
+    return method;
+  }
 
 }
 

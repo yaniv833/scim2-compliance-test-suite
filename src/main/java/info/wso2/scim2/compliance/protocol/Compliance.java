@@ -20,6 +20,7 @@ import info.wso2.scim2.compliance.entities.Statistics;
 import info.wso2.scim2.compliance.entities.TestResult;
 import info.wso2.scim2.compliance.exception.ComplianceException;
 import info.wso2.scim2.compliance.exception.CriticalComplianceException;
+import info.wso2.scim2.compliance.objects.SCIMServiceProviderConfig;
 import info.wso2.scim2.compliance.pdf.PDFGenerator;
 import info.wso2.scim2.compliance.tests.*;
 import info.wso2.scim2.compliance.tests.BulkTest;
@@ -69,11 +70,11 @@ public class Compliance extends HttpServlet {
         }
 
         //TODO : Add other authentication logging checks as well.
-        if ((username.isEmpty() || password.isEmpty())) {
-            ComplianceException BadRequestException = new ComplianceException();
-            BadRequestException.setDetail("Authorization with service provider failed.");
-            return (new Result(BadRequestException.getDetail()));
-        }
+//        if ((username.isEmpty() || password.isEmpty())) {
+//            ComplianceException BadRequestException = new ComplianceException();
+//            BadRequestException.setDetail("Authorization with service provider failed.");
+//            return (new Result(BadRequestException.getDetail()));
+//        }
 
         // This is to keep the test results
         ArrayList<TestResult> results = new ArrayList<TestResult>();
@@ -103,33 +104,9 @@ public class Compliance extends HttpServlet {
         complianceTestMetaDataHolder.setAuthorization_method(authMethod);
         complianceTestMetaDataHolder.setClient_id(clientId);
         complianceTestMetaDataHolder.setClient_secret(clientSecret);
-
-        try {
-            // Schema Test
-            SchemaTest schemaTest = new SchemaTest(complianceTestMetaDataHolder);
-            ArrayList<TestResult> schemaResults = schemaTest.performTest();
-            for(TestResult result : schemaResults){
-                results.add(result);
-            }
-        } catch (CriticalComplianceException e) {
-            results.add(e.getResult());
-        } catch (ComplianceException e) {
-            return (new Result(e.getDetail()));
-        }
+        complianceTestMetaDataHolder.setScimServiceProviderConfig(new SCIMServiceProviderConfig());
 
 
-        try {
-            // Schema Test
-            ConfigTest configTest = new ConfigTest(complianceTestMetaDataHolder);
-            ArrayList<TestResult> configResults = configTest.performTest();
-            for(TestResult result : configResults){
-                results.add(result);
-            }
-        } catch (CriticalComplianceException e) {
-            results.add(e.getResult());
-        } catch (ComplianceException e) {
-            return (new Result(e.getDetail()));
-        }
 
         //SCIMUser Test
         UserTest userTest = new UserTest(complianceTestMetaDataHolder);
@@ -155,42 +132,6 @@ public class Compliance extends HttpServlet {
             results.add(testResult);
         }
 
-        //Me Test
-        MeTest meTest = new MeTest(complianceTestMetaDataHolder);
-        ArrayList<TestResult> meTestResults = null;
-        try {
-            meTestResults = meTest.performTest();
-        } catch (ComplianceException e) {
-            return (new Result(e.getDetail()));
-        }
-        for (TestResult testResult : meTestResults) {
-            results.add(testResult);
-        }
-
-        // /ResourceType Test
-        ResourceTypeTest resourceTypeTest = new ResourceTypeTest(complianceTestMetaDataHolder);
-        try {
-            ArrayList<TestResult> resourceTypeResults = resourceTypeTest.performTest();
-            for(TestResult result : resourceTypeResults){
-                results.add(result);
-            }
-        } catch (CriticalComplianceException e) {
-            results.add(e.getResult());
-        } catch (ComplianceException e) {
-            return (new Result(e.getDetail()));
-        }
-        //List Test
-        ListTest listTest = new ListTest(complianceTestMetaDataHolder);
-        ArrayList<TestResult> listTestResults = new ArrayList<>();
-        try {
-            listTestResults = listTest.performTest();
-        } catch (ComplianceException e) {
-            return (new Result(e.getDetail()));
-        }
-        for (TestResult testResult : listTestResults) {
-            results.add(testResult);
-        }
-
         // Filter Test
         FilterTest filterTest = new FilterTest(complianceTestMetaDataHolder);
         ArrayList<TestResult> filterTestResults = new ArrayList<>();
@@ -201,58 +142,6 @@ public class Compliance extends HttpServlet {
         }
         for (TestResult testResult : filterTestResults) {
             results.add(testResult);
-        }
-
-        // Pagination Test
-        PaginationTest paginationTest = new PaginationTest(complianceTestMetaDataHolder);
-        ArrayList<TestResult> paginationTestResults = new ArrayList<>();
-        try {
-            paginationTestResults = paginationTest.performTest();
-        } catch (ComplianceException e) {
-            return (new Result(e.getDetail()));
-        }
-        for (TestResult testResult : paginationTestResults) {
-            results.add(testResult);
-        }
-
-        // Sort Test
-        SortTest sortTest = new SortTest(complianceTestMetaDataHolder);
-        ArrayList<TestResult> sortTestResults = new ArrayList<>();
-        try {
-            if (complianceTestMetaDataHolder.getScimServiceProviderConfig().getSortSupported()){
-                try {
-                    sortTestResults = sortTest.performTest();
-                } catch (ComplianceException e) {
-                    return (new Result(e.getDetail()));
-                }
-                for (TestResult testResult : sortTestResults) {
-                    results.add(testResult);
-                }
-            } else {
-                results.add(new TestResult(TestResult.SKIPPED, "Sort Test", "Skipped",null));
-            }
-        } catch (CharonException e) {
-            return (new Result(e.getDetail()));
-        }
-
-        // Bulk Test
-        BulkTest bulkTest = new BulkTest(complianceTestMetaDataHolder);
-        ArrayList<TestResult> bulkTestResults = new ArrayList<>();
-        try {
-            if (complianceTestMetaDataHolder.getScimServiceProviderConfig().getBulkSupported()){
-                try {
-                    bulkTestResults = bulkTest.performTest();
-                } catch (ComplianceException e) {
-                    return (new Result(e.getDetail()));
-                }
-                for (TestResult testResult : bulkTestResults) {
-                    results.add(testResult);
-                }
-            } else {
-                results.add(new TestResult(TestResult.SKIPPED, "Bulk Test", "Skipped",null));
-            }
-        } catch (CharonException e) {
-            return (new Result(e.getDetail()));
         }
 
         Statistics statistics = new Statistics();
@@ -273,14 +162,135 @@ public class Compliance extends HttpServlet {
         Result finalResults = new Result(statistics, results);
 
         //generate pdf results sheet
-        try {
-            String fullPath = context.getRealPath("/WEB-INF");
-            String reportURL = PDFGenerator.GeneratePDFResults(finalResults, fullPath);
-            //TODO : Change this on server
-            finalResults.setReportLink("file://" + reportURL);
-        } catch (IOException e) {
-           return (new Result(e.getMessage()));
+        if(context!=null) {
+            try {
+                String fullPath = context.getRealPath("/WEB-INF");
+                System.out.println(fullPath);
+                String reportURL = PDFGenerator.GeneratePDFResults(finalResults, fullPath);
+                //TODO : Change this on server
+                finalResults.setReportLink("file://" + reportURL);
+            } catch (IOException e) {
+                return (new Result(e.getMessage()));
+            }
         }
         return finalResults;
+    }
+
+    public void skippedTests(){
+
+        //Me Test
+//        MeTest meTest = new MeTest(complianceTestMetaDataHolder);
+//        ArrayList<TestResult> meTestResults = null;
+//        try {
+//            meTestResults = meTest.performTest();
+//        } catch (ComplianceException e) {
+//            return (new Result(e.getDetail()));
+//        }
+//        for (TestResult testResult : meTestResults) {
+//            results.add(testResult);
+//        }
+
+        // /ResourceType Test
+//        ResourceTypeTest resourceTypeTest = new ResourceTypeTest(complianceTestMetaDataHolder);
+//        try {
+//            ArrayList<TestResult> resourceTypeResults = resourceTypeTest.performTest();
+//            for(TestResult result : resourceTypeResults){
+//                results.add(result);
+//            }
+//        } catch (CriticalComplianceException e) {
+//            results.add(e.getResult());
+//        } catch (ComplianceException e) {
+//            return (new Result(e.getDetail()));
+//        }
+//        //List Test
+//        ListTest listTest = new ListTest(complianceTestMetaDataHolder);
+//        ArrayList<TestResult> listTestResults = new ArrayList<>();
+//        try {
+//            listTestResults = listTest.performTest();
+//        } catch (ComplianceException e) {
+//            return (new Result(e.getDetail()));
+//        }
+//        for (TestResult testResult : listTestResults) {
+//            results.add(testResult);
+//        }
+
+        //        try {
+//            // Schema Test
+//            SchemaTest schemaTest = new SchemaTest(complianceTestMetaDataHolder);
+//            ArrayList<TestResult> schemaResults = schemaTest.performTest();
+//            for(TestResult result : schemaResults){
+//                results.add(result);
+//            }
+//        } catch (CriticalComplianceException e) {
+//            results.add(e.getResult());
+//        } catch (ComplianceException e) {
+//            return (new Result(e.getDetail()));
+//        }
+//
+//
+//        try {
+//            // Schema Test
+//            ConfigTest configTest = new ConfigTest(complianceTestMetaDataHolder);
+//            ArrayList<TestResult> configResults = configTest.performTest();
+//            for(TestResult result : configResults){
+//                results.add(result);
+//            }
+//        } catch (CriticalComplianceException e) {
+//            results.add(e.getResult());
+//        } catch (ComplianceException e) {
+//            return (new Result(e.getDetail()));
+//        }
+
+        // Pagination Test
+//        PaginationTest paginationTest = new PaginationTest(complianceTestMetaDataHolder);
+//        ArrayList<TestResult> paginationTestResults = new ArrayList<>();
+//        try {
+//            paginationTestResults = paginationTest.performTest();
+//        } catch (ComplianceException e) {
+//            return (new Result(e.getDetail()));
+//        }
+//        for (TestResult testResult : paginationTestResults) {
+//            results.add(testResult);
+//        }
+
+        // Sort Test
+//        SortTest sortTest = new SortTest(complianceTestMetaDataHolder);
+//        ArrayList<TestResult> sortTestResults = new ArrayList<>();
+//        try {
+//            if (complianceTestMetaDataHolder.getScimServiceProviderConfig().getSortSupported()){
+//                try {
+//                    sortTestResults = sortTest.performTest();
+//                } catch (ComplianceException e) {
+//                    return (new Result(e.getDetail()));
+//                }
+//                for (TestResult testResult : sortTestResults) {
+//                    results.add(testResult);
+//                }
+//            } else {
+//                results.add(new TestResult(TestResult.SKIPPED, "Sort Test", "Skipped",null));
+//            }
+//        } catch (CharonException e) {
+//            return (new Result(e.getDetail()));
+//        }
+
+        // Bulk Test
+//        BulkTest bulkTest = new BulkTest(complianceTestMetaDataHolder);
+//        ArrayList<TestResult> bulkTestResults = new ArrayList<>();
+//        try {
+//            if (complianceTestMetaDataHolder.getScimServiceProviderConfig().getBulkSupported()){
+//                try {
+//                    bulkTestResults = bulkTest.performTest();
+//                } catch (ComplianceException e) {
+//                    return (new Result(e.getDetail()));
+//                }
+//                for (TestResult testResult : bulkTestResults) {
+//                    results.add(testResult);
+//                }
+//            } else {
+//                results.add(new TestResult(TestResult.SKIPPED, "Bulk Test", "Skipped",null));
+//            }
+//        } catch (CharonException e) {
+//            return (new Result(e.getDetail()));
+//        }
     }
 }

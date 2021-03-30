@@ -322,7 +322,7 @@ public class GroupTest {
         String updateUserURL = null;
         String definedUpdatedGroup = null;
         try {
-            definedUpdatedGroup = "{\"displayName\": \"Doctors\"}";
+            definedUpdatedGroup = "{\"displayName\":\"YERFTERI\", \"members\": []}";
         } catch (Exception e) {
             throw new ComplianceException("Error while getting the user to add to group");
         }
@@ -426,10 +426,16 @@ public class GroupTest {
 
         Group group = null;
         String id = InitiateGroup("Patch Group");
+
+        UserTest userTest = new UserTest(complianceTestMetaDataHolder);
+//        String userid = userTest.InitiateUser("Patch Group");
+
+//        String definedUser = "{\"password\": \"7019asd81\",\"userName\": \"yaniv\"}";
         String patchGroupURL = null;
         String definedPatchedGroup = null;
         definedPatchedGroup = "{\"schemas\":[\"urn:ietf:params:scim:api:messages:2.0:PatchOp\"]," +
-                "\"Operations\":[{\"op\":\"add\",\"value\":{\"displayName\": \"Actors\"}}]}";
+                "\"Operations\":[{\"op\":\"add\",\"value\":[{\"$ref\": \"null\", \"value\":\"yaniv\"}],"
+                              + "\"path\":\"members\"}]}";
 
         patchGroupURL = url + "/" + id;
 
@@ -445,7 +451,12 @@ public class GroupTest {
         String responseStatus = "";
         ArrayList<String> subTests =  new ArrayList<>();
         try {
-            //update the user
+            //create the user:
+//            HttpEntity entity2 = new ByteArrayEntity(definedUser.getBytes("UTF-8"));
+//            method.setEntity(entity2);
+//            response = client.execute(method);
+
+            //update the group
             HttpEntity entity = new ByteArrayEntity(definedPatchedGroup.getBytes("UTF-8"));
             method.setEntity(entity);
             method.setHeader("Accept", "application/json");
@@ -472,6 +483,8 @@ public class GroupTest {
             responseStatus = response.getStatusLine().getStatusCode() + " "
                     + response.getStatusLine().getReasonPhrase();
             CleanUpGroup(id, "Patch Group");
+//            userTest.CleanUpUser("yaniv","Patch Group");
+
             throw new GeneralComplianceException(new TestResult(TestResult.ERROR, "Patch Group",
                     "Could not patch the default group at url " + url,
                     ComplianceUtils.getWire(method, responseString, headerString, responseStatus, subTests)));
@@ -488,6 +501,8 @@ public class GroupTest {
 
             } catch (BadRequestException | CharonException | InternalErrorException e) {
                 CleanUpGroup(id, "Patch Group");
+//                userTest.CleanUpUser("yaniv","Patch Group");
+
                 throw new GeneralComplianceException(new TestResult(TestResult.ERROR, "Patch Group",
                         "Could not decode the server response",
                         ComplianceUtils.getWire(method, responseString, headerString, responseStatus, subTests)));
@@ -499,17 +514,22 @@ public class GroupTest {
 
             } catch (BadRequestException | CharonException e) {
                 CleanUpGroup(id, "Patch Group");
+//                userTest.CleanUpUser("yaniv","Patch Group");
                 throw new GeneralComplianceException(new TestResult(TestResult.ERROR, "Patch Group",
                         "Response Validation Error",
                         ComplianceUtils.getWire(method, responseString, headerString, responseStatus, subTests)));
             }
             CleanUpGroup(id,"Patch Group");
+//            userTest.CleanUpUser("yaniv","Patch Group");
+
             return new TestResult
                     (TestResult.SUCCESS, "Patch Group",
                             "", ComplianceUtils.getWire(method, responseString, headerString,
                             responseStatus, subTests));
         } else {
             CleanUpGroup(id, "Patch Group");
+            userTest.CleanUpUser("yaniv","Patch Group");
+
             return new TestResult
                     (TestResult.ERROR, "Patch Group",
                             "", ComplianceUtils.getWire(method, responseString, headerString,

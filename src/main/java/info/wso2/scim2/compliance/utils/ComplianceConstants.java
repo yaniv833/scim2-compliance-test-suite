@@ -89,7 +89,7 @@ public class ComplianceConstants {
 
         public static String DEFINED_PATCH_USER_PAYLOAD =
                 "{\"schemas\":[\"urn:ietf:params:scim:api:messages:2.0:PatchOp\"]," +
-                        "\"Operations\":[{\"op\":\"add\",\"value\":{\"nickName\":\"shaggy\"}}]}";
+                        "\"Operations\":[{\"op\":\"replace\",\"value\":\"false\",\"path\":\"active\"}]}";
 
         public static String DEFINED_BULK_REQUEST = "{\"failOnErrors\":1,\"schemas\":" +
                 "[\"urn:ietf:params:scim:api:messages:2.0:BulkRequest\"],\"Operations\":" +
